@@ -1,7 +1,7 @@
-import constants
-import modes
-import positions
-from packet import Packet
+from . import constants
+from . import modes
+from . import positions
+from .packet import Packet
 
 
 class Text(object):
@@ -64,3 +64,17 @@ class Text(object):
 
   def __repr__(self):
     return repr(self.__str__())
+    
+  def __bytes__(self):
+    """Return the packet as bytes for Python 3 compatibility."""
+    if self.data:
+      packet = Packet("%s%s%s%s%s%s" % (constants.WRITE_TEXT,
+                                        (self.priority and "0" or self.label),
+                                        constants.ESC,
+                                        self.position,
+                                        self.mode,
+                                        self.data))
+    else:
+      packet = Packet("%s%s" % (constants.WRITE_TEXT,
+                                (self.priority and "0" or self.label)))
+    return bytes(packet)

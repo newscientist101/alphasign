@@ -1,6 +1,8 @@
+from __future__ import print_function
 import serial
 import time
-import usb
+import usb.core
+import usb.util
 
 from alphasign.interfaces import base
 
@@ -48,9 +50,9 @@ class Serial(base.BaseInterface):
     if not self._conn or not self._conn.isOpen():
       self.connect()
     if self.debug:
-      print "Writing packet: %s" % repr(packet)
+      print("Writing packet: %s" % repr(packet))
     try:
-      self._conn.write(str(packet))
+      self._conn.write(str(packet).encode('utf-8'))
     except OSError:
       return False
     else:
@@ -60,7 +62,7 @@ class Serial(base.BaseInterface):
 class USB(base.BaseInterface):
   """Connect to a sign using USB.
 
-  This class uses `PyUSB <http://pyusb.berlios.de>`_.
+  This class uses `PyUSB <https://github.com/pyusb/pyusb>`_.
   """
   def __init__(self, usb_id):
     """
@@ -68,53 +70,109 @@ class USB(base.BaseInterface):
     """
     self.vendor_id, self.product_id = usb_id
     self.debug = False
-    self._handle = None
-    self._conn = None
+    self._device = None
+    self._read_endpoint = None
+    self._write_endpoint = None
 
   def _get_device(self):
-    for bus in usb.busses():
-      for device in bus.devices:
-        if (device.idVendor == self.vendor_id and
-            device.idProduct == self.product_id):
-          return device
-    return None
+    """Find the USB device with the specified vendor and product ID.
+    
+    :return: USB device object or None if not found
+    """
+    device = usb.core.find(idVendor=self.vendor_id, idProduct=self.product_id)
+    return device
 
   def connect(self, reset=True):
-    """
+    """Connect to the USB device.
+    
     :param reset: send a USB RESET command to the sign.
                   This seems to cause problems in VMware.
-    :exception usb.USBError: on USB-related errors
+    :exception usb.core.USBError: on USB-related errors
     """
-    if self._conn:
+    if self._device:
       return
 
-    device = self._get_device()
-    if not device:
-      raise usb.USBError, ("failed to find USB device %04x:%04x" %
+    self._device = self._get_device()
+    if not self._device:
+      raise usb.core.USBError("Failed to find USB device %04x:%04x" %
                            (self.vendor_id, self.product_id))
 
-    interface = device.configurations[0].interfaces[0][0]
-    self._read_endpoint, self._write_endpoint = interface.endpoints
-    self._conn = device.open()
+    # Reset the device if requested
     if reset:
-      self._conn.reset()
-    self._conn.claimInterface(interface)
+      try:
+        self._device.reset()
+      except Exception as e:
+        print(f"Warning: Could not reset device: {e}")
+
+    # Detach kernel driver if active
+    if self._device.is_kernel_driver_active(0):
+      try:
+        self._device.detach_kernel_driver(0)
+      except Exception as e:
+        print(f"Warning: Could not detach kernel driver: {e}")
+
+    # Set configuration
+    try:
+      self._device.set_configuration()
+    except Exception as e:
+      print(f"Warning: Could not set configuration: {e}")
+
+    # Get configuration
+    cfg = self._device.get_active_configuration()
+    
+    # Get interface
+    intf = cfg[(0,0)]
+    
+    # Find endpoints
+    for ep in intf:
+        if usb.util.endpoint_direction(ep.bEndpointAddress) == usb.util.ENDPOINT_IN:
+            self._read_endpoint = ep
+        else:
+            self._write_endpoint = ep
+    
+    if not self._write_endpoint:
+        raise usb.core.USBError("Could not find write endpoint")
 
   def disconnect(self):
-    """ """
-    if self._conn:
-      self._conn.releaseInterface()
+    """Disconnect from the USB device.
+    """
+    if self._device:
+      try:
+        usb.util.release_interface(self._device, 0)
+        usb.util.dispose_resources(self._device)
+      except Exception as e:
+        print(f"Warning during disconnect: {e}")
+      self._device = None
+      self._read_endpoint = None
+      self._write_endpoint = None
 
   def write(self, packet):
-    """ """
-    if not self._conn:
+    """Write packet to the USB device.
+    
+    :param packet: packet to write
+    :type packet: :class:`alphasign.packet.Packet`
+    """
+    if not self._device:
       self.connect()
+    
     if self.debug:
-      print "Writing packet: %s" % repr(packet)
-    written = self._conn.bulkWrite(self._write_endpoint.address, str(packet))
-    if self.debug:
-      print "%d bytes written" % written
-    self._conn.bulkWrite(self._write_endpoint.address, '')
+      print("Writing packet: %s" % repr(packet))
+    
+    # Convert packet to bytes if it's not already
+    packet_bytes = str(packet).encode('utf-8') if isinstance(packet, str) else bytes(packet)
+    
+    # Write the packet
+    try:
+      written = self._device.write(self._write_endpoint.bEndpointAddress, packet_bytes)
+      if self.debug:
+        print("%d bytes written" % written)
+      
+      # Send empty packet to finalize the transfer
+      self._device.write(self._write_endpoint.bEndpointAddress, b'')
+      return True
+    except Exception as e:
+      print(f"Error writing to USB device: {e}")
+      return False
 
 
 class DebugInterface(base.BaseInterface):
@@ -136,5 +194,5 @@ class DebugInterface(base.BaseInterface):
   def write(self, packet):
     """ """
     if self.debug:
-      print "Writing packet: %s" % repr(packet)
+      print("Writing packet: %s" % repr(packet))
     return True

@@ -1,5 +1,6 @@
-import constants
-from packet import Packet
+from . import constants
+import datetime
+from .packet import Packet
 
 
 class Time(object):

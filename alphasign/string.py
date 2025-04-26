@@ -1,5 +1,5 @@
-import constants
-from packet import Packet
+from . import constants
+from .packet import Packet
 
 
 class String(object):
@@ -47,3 +47,8 @@ class String(object):
 
   def __repr__(self):
     return repr(self.__str__())
+    
+  def __bytes__(self):
+    """Return the packet as bytes for Python 3 compatibility."""
+    return bytes(Packet("%s%s%s" % (constants.WRITE_STRING, self.label,
+                                  self.data)))

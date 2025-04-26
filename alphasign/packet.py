@@ -1,4 +1,4 @@
-import constants
+from alphasign import constants
 
 
 class Packet(object):
@@ -21,3 +21,7 @@ class Packet(object):
 
   def __repr__(self):
     return repr(self._pkt)
+    
+  def __bytes__(self):
+    """Return the packet as bytes for Python 3 compatibility."""
+    return self._pkt.encode('utf-8')
