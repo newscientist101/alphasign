@@ -41,13 +41,17 @@ class RGB(object):
     self.size = size
     self.data = data
     self.priority = priority
+    self.height = height
+    self.width = width
 
   def __str__(self):
-    # [WRITE_RGB_DOTS][File Label]
+    # [WRITE_RGB_DOTS][File Label][Height][Width][Data]
 
     if self.data:
       packet = Packet("%s%s%s%s%s%s" % (constants.WRITE_RGB_DOTS,
                                         (self.priority and "0" or self.label),
+                                        self.height,
+                                        self.width,
                                         self.data))
     else:
       packet = Packet("%s%s" % (constants.WRITE_RGB_DOTS,
@@ -62,6 +66,8 @@ class RGB(object):
     if self.data:
       packet = Packet("%s%s%s%s%s%s" % (constants.WRITE_RGB_DOTS,
                                         (self.priority and "0" or self.label),
+                                        self.height,
+                                        self.width,
                                         self.data))
     else:
       packet = Packet("%s%s" % (constants.WRITE_RGB_DOTS,
