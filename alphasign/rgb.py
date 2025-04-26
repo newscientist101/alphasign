@@ -7,7 +7,7 @@ from .packet import Packet
 class RGB(object):
   """Class representing a RGB DOTS PICTURE file.
 
-  This class is aliased as :class:`alphasign.Text` in :mod:`alphasign.__init__`.
+  This class is aliased as :class:`alphasign.RGB` in :mod:`alphasign.__init__`.
   """
 
   def __init__(self, data=None, label=None, size=None,
@@ -16,8 +16,6 @@ class RGB(object):
     :param data: initial string to insert into object
     :param label: file label (default: "A")
     :param size: amount of bytes to allocate for object on sign (default: 64)
-    :param position: constant from :mod:`alphasign.positions`
-    :param mode: constant from :mod:`alphasign.modes`
     :param priority: set this text to be displayed instead of
                      all other TEXT files. Set to True with an empty message to
                      clear a priority TEXT.
