@@ -9,7 +9,7 @@ else:
 
 setup(
   name = 'alphasign',
-  version = '2.0.0',
+  version = '1.1.0',
   packages = find_packages(),
   install_requires = ['pyserial>=2.4', pyusb_req, 'pyyaml>=3.05'],
   author = 'Matt Sparks',
@@ -17,7 +17,7 @@ setup(
   description = 'Implementation of the Alpha Sign Communications Protocol',
   long_description = ('Implementation of the Alpha Sign Communications '
                       'Protocol, which is used by many commercial LED signs, '
-                      'including the Betabrite. Modernized for Python 3.8+.'),
+                      'including the Betabrite. Ported to Python 3.8+.'),
   url = 'https://github.com/msparks/alphasign',
   license = 'BSD',
   python_requires='>=3.8',
