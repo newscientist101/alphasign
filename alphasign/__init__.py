@@ -55,6 +55,7 @@ from .date import Date
 from .string import String
 from .packet import Packet
 from .text import Text
+from .dots import SmallDotsPicture, LargeDotsPicture, RgbDotsPicture
 
 from . import charsets
 from . import colors
