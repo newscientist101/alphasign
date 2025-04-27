@@ -49,13 +49,13 @@ class DotsPicture(object):
     def call(self):
         """Generate the control code sequence to call this picture from a TEXT file.
 
-        Uses ESC p [Picture Type] [File Label]
+        Uses DC4 p [Picture Type] [File Label]
         Picture Type: '1' for Small, '2' for Large/RGB
         """
         # This might need adjustment based on specific picture type (Small vs Large/RGB)
         # Defaulting to Large/RGB for now, override in SmallDotsPicture
         picture_type_code = "2" 
-        return "%sp%s%s" % (constants.ESC, picture_type_code, self.label)
+        return "%sp%s%s" % (constants.DC4, picture_type_code, self.label)
 
     def __str__(self):
         # Actual packet generation will be handled by child classes
@@ -98,8 +98,8 @@ class SmallDotsPicture(DotsPicture):
 
     def call(self):
         """Generate the control code sequence to call this picture from a TEXT file."""
-        # Uses ESC p 1 [File Label]
-        return "%sp1%s" % (constants.ESC, self.label)
+        # Uses [DC4][File Label]
+        return "%s%s" % (constants.DC4, self.label)
 
     def __str__(self):
         """Generate the Write SMALL DOTS PICTURE packet string."""
