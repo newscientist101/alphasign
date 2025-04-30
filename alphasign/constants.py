@@ -44,6 +44,10 @@ NEWLINE               = NL
 NEWPAGE               = NP
 
 # Color status for small and large dots
-MONOCHROME = "1000"
-THREECOLOR = "2000"
-EIGHTCOLOR = "4000"
+MONOSMALL = "1000"
+THREESMALL = "2000"
+EIGHTSMALL = "4000"
+MONOLARGE = "01"
+THREELARGE = "02"
+EIGHTLARGE = "04" #Real?
+RGB = "08"

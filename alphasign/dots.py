@@ -166,7 +166,7 @@ class LargeDotsPicture(DotsPicture):
 
         # Protocol notes 100ms delay after Width - see SmallDotsPicture comment.
 
-        packet_data = "%s%s%s%s%s" % (
+        packet_data = "%s%s%s%s" % (
             constants.WRITE_LARGE_DOTS,
             self.label,
             self.size,

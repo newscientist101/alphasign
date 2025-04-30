@@ -98,9 +98,9 @@ class BaseInterface(object):
         size_hex = obj.size # SIZE for DOTS is RRCC (Rows Rows Cols Cols) in hex
       elif isinstance(obj, (LargeDotsPicture, RgbDotsPicture)):
         file_type = "D"
-        qqqq = obj.color_status # Color status (e.g., "1000", "2000", "4000", "8000")
+        qqqq = obj.color_status # Color status ("01" mono, "02" 3-color, "04" 8-color (not sure if this is valid), "08" RGB)
         lock = constants.UNLOCKED # DOTS files are typically unlocked
-        size_hex = obj.size # SIZE for DOTS is RRCC (Rows Rows Cols Cols) in hex
+        size_hex = obj.size # SIZE for Large DOTS is RRRRCCCC (Rows Rows Rows Rows Cols Cols Cols Cols) in hex
       else:
           # Optional: Handle unknown types or raise an error
           print(f"Warning: Unknown file type for allocation: {type(obj)}")
@@ -113,7 +113,7 @@ class BaseInterface(object):
                     size_hex,    # size representation depends on type
                     qqqq))
       elif isinstance(obj, (LargeDotsPicture, RgbDotsPicture)):
-        alloc_str = ("%s%s%s%s%s%s" %
+        alloc_str = ("%s%s%s%s%s" %
                      (obj.label,
                       lock,
                       size_hex,
@@ -121,15 +121,17 @@ class BaseInterface(object):
                       "0000"))   # reserved for future use
       seq += alloc_str
 
+    # Counter allocation
+    # Disabled for now to remove noise from testing and 
     # allocate special TARGET TEXT files 1 through 5
-    for i in range(5):
-      alloc_str = ("%s%s%s%s%s" %
-                   ("%d" % (i + 1),
-                   "A",    # file type
-                   constants.UNLOCKED,
-                   "%04X" % 100, # Default size for target files
-                   "FEFE")) # Default times for target files
-      seq += alloc_str
+    # for i in range(5):
+    #   alloc_str = ("%s%s%s%s%s" %
+    #                ("%d" % (i + 1),
+    #                "A",    # file type
+    #                constants.UNLOCKED,
+    #                "%04X" % 100, # Default size for target files
+    #                "FEFE")) # Default times for target files
+    #   seq += alloc_str
     if isinstance(obj, (String, Text, SmallDotsPicture)):
       special_function = "$"
     elif isinstance(obj, (LargeDotsPicture, RgbDotsPicture)):
