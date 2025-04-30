@@ -38,6 +38,12 @@ DC4                  = "\x14"  # Call SMALL DOTS PICTURE file (2-byte format) â€
 CAN                   = "\x18"  # Cancel
 SUB                   = "\x1A"  # Substitute (select charset)
 ESC                   = "\x1B"  # Escape character
+US                   = "\x1F"  # Call large dots picture or animation file (15-byte format)
 
 NEWLINE               = NL
 NEWPAGE               = NP
+
+# Color status for small and large dots
+MONOCHROME = "1000"
+THREECOLOR = "2000"
+EIGHTCOLOR = "4000"

@@ -8,7 +8,7 @@ class DotsPicture(object):
     This class serves as a foundation for Small, Large, and RGB DOTS PICTURE files.
     """
 
-    def __init__(self, label=None, height=0, width=0, data=None, color_status="1000"):
+    def __init__(self, label=None, height=0, width=0, max_height=31, max_width = 255, data=None, color_status="1000"):
         """
         :param label: File label (single character for Small/RGB, 9 chars for Large).
         :param height: Picture height in pixels.
@@ -21,6 +21,14 @@ class DotsPicture(object):
             label = "?"
         if data is None:
             data = []
+        height = abs(height)
+        width = abs(width)
+        self.max_height = max_height
+        self.max_width = max_width
+        if height > max_height:
+            raise ValueError(f"{self.__class__.__name__} height cannot exceed {self.max_height} pixels.")
+        if width > max_width:
+            raise ValueError(f"{self.__class__.__name__} width cannot exceed {self.max_width} pixels.")
 
         self.label = label
         self.height = height
@@ -28,15 +36,11 @@ class DotsPicture(object):
         self.data = data  # Expecting a list of strings, one per row
         self.color_status = color_status # Used in memory allocation
 
-        # Size attribute for allocation (rows << 16 | cols)
-        # Use 4 bytes total for size in allocation, first 2 for rows, last 2 for cols
-        self.size = (height << 16) | width
-
     def _format_dimensions(self, num_bytes):
         """Formats height and width into the required number of hex bytes."""
         height_hex = ("%0" + str(num_bytes) + "X") % self.height
         width_hex = ("%0" + str(num_bytes) + "X") % self.width
-        return height_hex, width_hex
+        return height_hex+width_hex
 
     def _format_data(self):
         """Formats the pixel data rows with CR delimiters."""
@@ -77,7 +81,7 @@ class SmallDotsPicture(DotsPicture):
     Inherits from DotsPicture.
     """
 
-    def __init__(self, label="1", height=0, width=0, data=None, color_status="1000"):
+    def __init__(self, label="1", height=0, width=0, max_height=31, max_width = 255, data=None, color_status="1000"):
         """
         :param label: File label (single character, default: "1").
         :param height: Picture height in pixels (0-31).
@@ -85,16 +89,14 @@ class SmallDotsPicture(DotsPicture):
         :param data: Pixel data (list of strings).
         :param color_status: Color status ("1000" mono, "2000" 3-color, "4000" 8-color).
         """
-        if height > 31:
-            raise ValueError("SmallDotsPicture height cannot exceed 31 pixels.")
-        if width > 255:
-            raise ValueError("SmallDotsPicture width cannot exceed 255 pixels.")
+
         if len(label) != 1:
             raise ValueError("SmallDotsPicture label must be a single character.")
 
-        super().__init__(label=label, height=height, width=width, data=data, color_status=color_status)
-        # Allocation size uses 2 bytes for rows, 2 bytes for cols, even for small dots
-        self.size = (height << 16) | width
+        super().__init__(label=label, height=height, width=width, max_height=max_height, max_width = max_width, data=data, color_status=color_status)
+        
+        # Height/Width are 2 ASCII hex bytes each
+        self.size = self._format_dimensions(2)
 
     def call(self):
         """Generate the control code sequence to call this picture from a TEXT file."""
@@ -104,8 +106,7 @@ class SmallDotsPicture(DotsPicture):
     def __str__(self):
         """Generate the Write SMALL DOTS PICTURE packet string."""
         # Format: [WRITE_SMALL_DOTS][File Label][Height][Width][Row Data...]
-        # Height/Width are 2 ASCII hex bytes each
-        height_hex, width_hex = self._format_dimensions(2)
+
         data_str = self._format_data()
 
         # Add 100ms delay note from protocol?
@@ -116,11 +117,10 @@ class SmallDotsPicture(DotsPicture):
         # splitting the write command (though the protocol implies it's one packet).
         # For now, just generate the packet data.
 
-        packet_data = "%s%s%s%s%s" % (
+        packet_data = "%s%s%s%s" % (
             constants.WRITE_SMALL_DOTS,
             self.label,
-            height_hex,
-            width_hex,
+            self.size,
             data_str
         )
         return str(Packet(packet_data))
@@ -132,70 +132,64 @@ class LargeDotsPicture(DotsPicture):
     Inherits from DotsPicture.
     """
 
-    def __init__(self, label="A", height=0, width=0, data=None, color_status="1000"):
+    def __init__(self, label="AAAAAAAAA", height=0, width=0, max_height=65535, max_width = 65535, data=None, color_status="01"):
         """
-        :param label: File label (single character, default: "A").
-                      Note: Protocol doc is inconsistent (9 chars vs 1 char). Using 1 char for E$ allocation.
+        :param label: File name (Nine ASCII characters, default: "AAAAAAAAA").
         :param height: Picture height in pixels (0-65535).
         :param width: Picture width in pixels (0-65535).
         :param data: Pixel data (list of strings).
-        :param color_status: Color status ("1000" mono, "2000" 3-color, "4000" 8-color).
+        :param color_status: Color status ("01" mono, "02" 3-color, "04" 8-color (not sure if this is valid), "08" RGB).
         """
-        if height > 65535:
-            raise ValueError("LargeDotsPicture height cannot exceed 65535 pixels.")
-        if width > 65535:
-            raise ValueError("LargeDotsPicture width cannot exceed 65535 pixels.")
-        if len(label) != 1:
-             # Enforcing single char based on E$ allocation spec, despite M command spec ambiguity
-            raise ValueError("LargeDotsPicture label must be a single character for E$ allocation.")
 
-        super().__init__(label=label, height=height, width=width, data=data, color_status=color_status)
-        # Allocation size uses 2 bytes for rows, 2 bytes for cols
-        self.size = (height << 16) | width
+        if len(label) != 9:
+             # Enforcing 9 char based on E8 allocation spec
+            raise ValueError("{self.__class__.__name__} name must be a 9 characters for E8 allocation.")
 
-    # call() method inherited from DotsPicture uses picture type '2', which is correct for Large.
+        super().__init__(label=label, height=height, width=width, max_height=max_height, max_width = max_width, data=data, color_status=color_status)
+        
+        # Height/Width are 4 ASCII hex bytes each
+        self.size = self._format_dimensions(4)
+
+    def call(self):
+        """Generate the control code sequence to call this picture from a TEXT file. Pg. 82
+
+        Uses [US][Type][File name][display hold time]
+        """
+
+        return "%s%s%s%s" % (constants.US, "\x4C",self.label,"0000")
 
     def __str__(self):
         """Generate the Write LARGE DOTS PICTURE packet string."""
-        # Format: [WRITE_LARGE_DOTS][File Label][Height][Width][Row Data...]
-        # Height/Width are 4 ASCII hex bytes each
-        height_hex, width_hex = self._format_dimensions(4)
+        # Format: [WRITE_LARGE_DOTS][File Label][Size (HeightWidth)][Row Data...]
+
         data_str = self._format_data()
 
         # Protocol notes 100ms delay after Width - see SmallDotsPicture comment.
 
         packet_data = "%s%s%s%s%s" % (
             constants.WRITE_LARGE_DOTS,
-            self.label, # Using single char label here, matching allocation
-            height_hex,
-            width_hex,
+            self.label,
+            self.size,
             data_str
         )
         return str(Packet(packet_data))
 
 
-class RgbDotsPicture(DotsPicture):
+class RgbDotsPicture(LargeDotsPicture):
     """Class representing an RGB DOTS PICTURE file (up to 65535x65535).
 
     Inherits from DotsPicture.
     """
 
-    def __init__(self, label="R", height=0, width=0, data=None):
+    def __init__(self, label="1", height=0, width=0, data=None):
         """
         :param label: File label (single character, default: "R").
         :param height: Picture height in pixels (0-65535).
         :param width: Picture width in pixels (0-65535).
         :param data: Pixel data (list of strings, each char is 6 hex digits RRGGBB).
         """
-        if height > 65535:
-            raise ValueError("RgbDotsPicture height cannot exceed 65535 pixels.")
-        if width > 65535:
-            raise ValueError("RgbDotsPicture width cannot exceed 65535 pixels.")
-        if len(label) != 1:
-            raise ValueError("RgbDotsPicture label must be a single character.")
 
-        # Assuming '8000' is the correct status for RGB allocation via E$ or E8
-        super().__init__(label=label, height=height, width=width, data=data, color_status="8000")
+        super().__init__(label=label, height=height, width=width, data=data, color_status="08")
         # Allocation size uses 2 bytes for rows, 2 bytes for cols
         self.size = (height << 16) | width
 

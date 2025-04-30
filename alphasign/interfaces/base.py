@@ -78,7 +78,8 @@ class BaseInterface(object):
     """
     seq = ""
     for obj in files:
-      # format: FTPSIZEQQQQ
+      # format: FTPSIZEQQQQ for String, Text, SmallDotsPicture
+      # FFFFFFFFFPRRRRCCCCccrrrr for LargeDotsPicture
 
       if type(obj) == String:
         file_type = "B"
@@ -90,23 +91,34 @@ class BaseInterface(object):
         qqqq = "FFFF"  # Default: Run always
         lock = constants.UNLOCKED
         size_hex = "%04X" % obj.size # Size is byte allocation
-      elif isinstance(obj, (SmallDotsPicture, LargeDotsPicture, RgbDotsPicture)):
+      elif type(obj) == SmallDotsPicture:
         file_type = "D"
         qqqq = obj.color_status # Color status (e.g., "1000", "2000", "4000", "8000")
         lock = constants.UNLOCKED # DOTS files are typically unlocked
-        # SIZE for DOTS is RRCC (Rows Rows Cols Cols) in hex
-        size_hex = "%02X%02X" % (obj.height, obj.width)
+        size_hex = obj.size # SIZE for DOTS is RRCC (Rows Rows Cols Cols) in hex
+      elif isinstance(obj, (LargeDotsPicture, RgbDotsPicture)):
+        file_type = "D"
+        qqqq = obj.color_status # Color status (e.g., "1000", "2000", "4000", "8000")
+        lock = constants.UNLOCKED # DOTS files are typically unlocked
+        size_hex = obj.size # SIZE for DOTS is RRCC (Rows Rows Cols Cols) in hex
       else:
           # Optional: Handle unknown types or raise an error
           print(f"Warning: Unknown file type for allocation: {type(obj)}")
           continue # Skip unknown types
-
-      alloc_str = ("%s%s%s%s%s" %
-                   (obj.label,  # file label to allocate
-                   file_type,   # file type
-                   lock,
-                   size_hex,    # size representation depends on type
-                   qqqq))
+      if isinstance(obj, (String, Text, SmallDotsPicture)):
+        alloc_str = ("%s%s%s%s%s" %
+                    (obj.label,  # file label to allocate
+                    file_type,   # file type
+                    lock,
+                    size_hex,    # size representation depends on type
+                    qqqq))
+      elif isinstance(obj, (LargeDotsPicture, RgbDotsPicture)):
+        alloc_str = ("%s%s%s%s%s%s" %
+                     (obj.label,
+                      lock,
+                      size_hex,
+                      obj.color_status,
+                      "0000"))   # reserved for future use
       seq += alloc_str
 
     # allocate special TARGET TEXT files 1 through 5
@@ -118,8 +130,11 @@ class BaseInterface(object):
                    "%04X" % 100, # Default size for target files
                    "FEFE")) # Default times for target files
       seq += alloc_str
-
-    pkt = packet.Packet("%s%s%s" % (constants.WRITE_SPECIAL, "$", seq))
+    if isinstance(obj, (String, Text, SmallDotsPicture)):
+      special_function = "$"
+    elif isinstance(obj, (LargeDotsPicture, RgbDotsPicture)):
+      special_function = "8"
+    pkt = packet.Packet("%s%s%s" % (constants.WRITE_SPECIAL, special_function, seq))
     self.write(pkt)
 
   def set_run_sequence(self, files, locked=False):
