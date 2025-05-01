@@ -33,9 +33,10 @@ Make a text file with purple text (#CC66FF)::
 
 Make a bi-color text file (red primary with a green shadow)::
 
-  msg = alphasign.Text("%s%sred and green" %
-                       (alphasign.colors.rgb("FF0000"),
-                        alphasign.colors.rgb("00FF00")), label="A")
+  msg = alphasign.Text("%s%s%sred and green" %
+                       (alphasign.charsets.SEVEN_SHADOW, 
+                       alphasign.colors.rgb("FF0000"),
+                       alphasign.colors.shadow_rgb("00FF00")), label="A")
 """
 
 # Colors
