@@ -76,51 +76,61 @@ class BaseInterface(object):
 
     :rtype: None
     """
-    seq = ""
-    for obj in files:
-      # format: FTPSIZEQQQQ for String, Text, SmallDotsPicture
-      # FFFFFFFFFPRRRRCCCCccrrrr for LargeDotsPicture
-
-      if type(obj) == String:
-        file_type = "B"
-        qqqq = "0000"  # unused for strings
-        lock = constants.LOCKED
-        size_hex = "%04X" % obj.size # Size is byte allocation
-      elif type(obj) == Text:
-        file_type = "A"
-        qqqq = "FFFF"  # Default: Run always
-        lock = constants.UNLOCKED
-        size_hex = "%04X" % obj.size # Size is byte allocation
-      elif type(obj) == SmallDotsPicture:
-        file_type = "D"
-        qqqq = obj.color_status # Color status (e.g., "1000", "2000", "4000", "8000")
-        lock = constants.UNLOCKED # DOTS files are typically unlocked
-        size_hex = obj.size # SIZE for DOTS is RRCC (Rows Rows Cols Cols) in hex
-      elif isinstance(obj, (LargeDotsPicture, RgbDotsPicture)):
+    largeobjects = list(filter(lambda x: x.__class__.__name__ in ['LargeDotsPicture', 'RgbDotsPicture'], files))
+    smallobjects = list(filter(lambda x: x.__class__.__name__ in ['String', 'Text', 'SmallDotsPicture'], files))
+    
+    if len(smallobjects) > 0:
+      seq = ""
+      for obj in smallobjects:
+        # format: FTPSIZEQQQQ for String, Text, SmallDotsPicture
+        if type(obj) == String:
+          file_type = "B"
+          qqqq = "0000"  # unused for strings
+          lock = constants.LOCKED
+          size_hex = "%04X" % obj.size # Size is byte allocation
+        elif type(obj) == Text:
+          file_type = "A"
+          qqqq = "FFFF"  # Default: Run always
+          lock = constants.UNLOCKED
+          size_hex = "%04X" % obj.size # Size is byte allocation
+        elif type(obj) == SmallDotsPicture:
+          file_type = "D"
+          qqqq = obj.color_status # Color status (e.g., "1000", "2000", "4000", "8000")
+          lock = constants.UNLOCKED # DOTS files are typically unlocked
+          size_hex = obj.size # SIZE for DOTS is RRCC (Rows Rows Cols Cols) in hex
+        alloc_str = ("%s%s%s%s%s" %
+                (obj.label,  # file label to allocate
+                file_type,   # file type
+                lock,
+                size_hex,    # size representation depends on type
+                qqqq))
+        seq += alloc_str
+      pkt = packet.Packet("%s%s%s" % (constants.WRITE_SPECIAL, "$", seq))
+      self.write(pkt)
+    
+    # FFFFFFFFFPRRRRCCCCccrrrr for LargeDotsPicture
+    if len(largeobjects) > 0:
+      seq = ""
+      for obj in largeobjects:
         file_type = "D"
         qqqq = obj.color_status # Color status ("01" mono, "02" 3-color, "04" 8-color (not sure if this is valid), "08" RGB)
         lock = constants.UNLOCKED # DOTS files are typically unlocked
         size_hex = obj.size # SIZE for Large DOTS is RRRRCCCC (Rows Rows Rows Rows Cols Cols Cols Cols) in hex
-      else:
-          # Optional: Handle unknown types or raise an error
-          print(f"Warning: Unknown file type for allocation: {type(obj)}")
-          continue # Skip unknown types
-      if isinstance(obj, (String, Text, SmallDotsPicture)):
         alloc_str = ("%s%s%s%s%s" %
-                    (obj.label,  # file label to allocate
-                    file_type,   # file type
-                    lock,
-                    size_hex,    # size representation depends on type
-                    qqqq))
-      elif isinstance(obj, (LargeDotsPicture, RgbDotsPicture)):
-        alloc_str = ("%s%s%s%s%s" %
-                     (obj.label,
-                      lock,
-                      size_hex,
-                      obj.color_status,
-                      "0000"))   # reserved for future use
-      seq += alloc_str
-
+                      (obj.label,
+                        lock,
+                        size_hex,
+                        obj.color_status,
+                        "0000"))   # reserved for future use
+        seq += alloc_str
+      pkt = packet.Packet("%s%s%s" % (constants.WRITE_SPECIAL, "8", seq))
+      self.write(pkt)
+    
+    for obj in filter(lambda x: x.__class__.__name__ not in ["String", "Text", "SmallDotsPicture", "LargeDotsPicture", "RgbDotsPicture"], files):
+      # Optional: Handle unknown types or raise an error
+      print(f"Warning: Unknown file type for allocation: {type(obj)}")
+      continue # Skip unknown types
+      
     # Counter allocation
     # Disabled for now to remove noise from testing and 
     # allocate special TARGET TEXT files 1 through 5
@@ -132,12 +142,6 @@ class BaseInterface(object):
     #                "%04X" % 100, # Default size for target files
     #                "FEFE")) # Default times for target files
     #   seq += alloc_str
-    if isinstance(obj, (String, Text, SmallDotsPicture)):
-      special_function = "$"
-    elif isinstance(obj, (LargeDotsPicture, RgbDotsPicture)):
-      special_function = "8"
-    pkt = packet.Packet("%s%s%s" % (constants.WRITE_SPECIAL, special_function, seq))
-    self.write(pkt)
 
   def set_run_sequence(self, files, locked=False):
     """Set the run sequence on the device.
