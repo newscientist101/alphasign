@@ -4,6 +4,7 @@ import usb.core
 import usb.util
 
 from alphasign.interfaces import base
+from alphasign import constants
 
 
 class Serial(base.BaseInterface):
@@ -157,18 +158,43 @@ class USB(base.BaseInterface):
     if self.debug:
       print("Writing packet: %s" % repr(packet))
     
-    # Convert packet to bytes if it's not already
-    packet_bytes = str(packet).encode('utf-8') if isinstance(packet, str) else bytes(packet)
-    
-    # Write the packet
+    packet_bytes = bytes(packet)
+    command_code = repr(packet)[32]
+    # Write the packet(s)
     try:
-      written = self._device.write(self._write_endpoint.bEndpointAddress, packet_bytes)
-      if self.debug:
-        print("%d bytes written" % written)
-      
-      # Send empty packet to finalize the transfer
-      self._device.write(self._write_endpoint.bEndpointAddress, b'')
-      return True
+      # If the command code is WRITE_SMALL_DOTS or WRITE_LARGE_DOTS, split the packet into two parts
+      # and send them separately. Refer to the protocol documentation (pg. 40) for details.
+      if command_code == constants.WRITE_SMALL_DOTS:
+        part1 = packet_bytes[0:16]
+        part2 = packet_bytes[16:]
+        written1 = self._device.write(self._write_endpoint.bEndpointAddress, part1)
+        time.sleep(0.1)
+        written2 = self._device.write(self._write_endpoint.bEndpointAddress, part2)
+        if self.debug:
+          print("Small dots detected: %s" % command_code)
+          print("%d bytes written" % (written1+written2))
+        # Send empty packet to finalize the transfer
+        self._device.write(self._write_endpoint.bEndpointAddress, b'')
+        return True
+      elif command_code == constants.WRITE_LARGE_DOTS:       
+        part1 = packet_bytes[0:28]
+        part2 = packet_bytes[28:]
+        written1 = self._device.write(self._write_endpoint.bEndpointAddress, part1)
+        time.sleep(0.1)
+        written2 = self._device.write(self._write_endpoint.bEndpointAddress, part2)
+        if self.debug:
+          print("Large dots detected: %s" % command_code)
+          print("%d bytes written" % (written1+written2))
+        # Send empty packet to finalize the transfer
+        self._device.write(self._write_endpoint.bEndpointAddress, b'')
+        return True
+      else:
+          written = self._device.write(self._write_endpoint.bEndpointAddress, packet_bytes)
+          if self.debug:
+            print("%d bytes written" % written)
+          # Send empty packet to finalize the transfer
+          self._device.write(self._write_endpoint.bEndpointAddress, b'')
+          return True
     except Exception as e:
       print(f"Error writing to USB device: {e}")
       return False

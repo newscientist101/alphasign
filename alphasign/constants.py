@@ -49,5 +49,5 @@ THREESMALL = "2000"
 EIGHTSMALL = "4000"
 MONOLARGE = "01"
 THREELARGE = "02"
-EIGHTLARGE = "04" #Real?
+EIGHTLARGE = "04" #Not in documentation but works on some signs (Tested with Betabrite Prism)
 RGB = "08"

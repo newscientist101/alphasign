@@ -79,7 +79,7 @@ class BaseInterface(object):
     largeobjects = list(filter(lambda x: x.__class__.__name__ in ['LargeDotsPicture', 'RgbDotsPicture'], files))
     smallobjects = list(filter(lambda x: x.__class__.__name__ in ['String', 'Text', 'SmallDotsPicture'], files))
     
-    if len(smallobjects) > 0:
+    if smallobjects:
       seq = ""
       for obj in smallobjects:
         # format: FTPSIZEQQQQ for String, Text, SmallDotsPicture
@@ -109,7 +109,7 @@ class BaseInterface(object):
       self.write(pkt)
     
     # FFFFFFFFFPRRRRCCCCccrrrr for LargeDotsPicture
-    if len(largeobjects) > 0:
+    if largeobjects:
       seq = ""
       for obj in largeobjects:
         file_type = "D"

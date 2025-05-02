@@ -81,7 +81,7 @@ class SmallDotsPicture(DotsPicture):
     Inherits from DotsPicture.
     """
 
-    def __init__(self, label="1", height=0, width=0, max_height=31, max_width = 255, data=None, color_status="1000"):
+    def __init__(self, label="1", height=0, width=0, max_height=31, max_width = 255, data=None, color_status=constants.MONOSMALL):
         """
         :param label: File label (single character, default: "1").
         :param height: Picture height in pixels (0-31).
@@ -92,6 +92,8 @@ class SmallDotsPicture(DotsPicture):
 
         if len(label) != 1:
             raise ValueError("SmallDotsPicture label must be a single character.")
+        if color_status not in [constants.MONOSMALL, constants.THREESMALL, constants.EIGHTSMALL]:
+            raise ValueError("SmallDotsPicture color status must be '1000', '2000', or '4000'.")
 
         super().__init__(label=label, height=height, width=width, max_height=max_height, max_width = max_width, data=data, color_status=color_status)
         
@@ -109,14 +111,6 @@ class SmallDotsPicture(DotsPicture):
 
         data_str = self._format_data()
 
-        # Add 100ms delay note from protocol?
-        # The protocol notes a 100ms delay needed after Width before Row Bit Pattern.
-        # This library cannot enforce that delay directly during packet string generation.
-        # Users of the library will need to handle delays if necessary, especially
-        # between sending the allocation command and the write command, or potentially
-        # splitting the write command (though the protocol implies it's one packet).
-        # For now, just generate the packet data.
-
         packet_data = "%s%s%s%s" % (
             constants.WRITE_SMALL_DOTS,
             self.label,
@@ -132,7 +126,7 @@ class LargeDotsPicture(DotsPicture):
     Inherits from DotsPicture.
     """
 
-    def __init__(self, label="AAAAAAAAA", height=0, width=0, max_height=65535, max_width = 65535, data=None, color_status="01"):
+    def __init__(self, label="AAAAAAAAA", height=0, width=0, max_height=65535, max_width = 65535, data=None, color_status=constants.MONOLARGE):
         """
         :param label: File name (Nine ASCII characters, default: "AAAAAAAAA").
         :param height: Picture height in pixels (0-65535).
@@ -144,6 +138,8 @@ class LargeDotsPicture(DotsPicture):
         if len(label) != 9:
              # Enforcing 9 char based on E8 allocation spec
             raise ValueError("{self.__class__.__name__} name must be a 9 characters for E8 allocation.")
+        if color_status not in [constants.MONOLARGE, constants.THREELARGE, constants.EIGHTLARGE]:
+            raise ValueError("LargeDotsPicture color status must be '01', '02', or '04'.")
 
         super().__init__(label=label, height=height, width=width, max_height=max_height, max_width = max_width, data=data, color_status=color_status)
         
@@ -163,8 +159,6 @@ class LargeDotsPicture(DotsPicture):
         # Format: [WRITE_LARGE_DOTS][File Label][Size (HeightWidth)][Row Data...]
 
         data_str = self._format_data()
-
-        # Protocol notes 100ms delay after Width - see SmallDotsPicture comment.
 
         packet_data = "%s%s%s%s" % (
             constants.WRITE_LARGE_DOTS,
@@ -202,8 +196,6 @@ class RgbDotsPicture(LargeDotsPicture):
         # Row data consists of 6 hex chars (RRGGBB) per pixel
         height_hex, width_hex = self._format_dimensions(4)
         data_str = self._format_data()
-
-        # Protocol notes 100ms delay after Width - see SmallDotsPicture comment.
 
         packet_data = "%s%s%s%s%s" % (
             constants.WRITE_RGB_DOTS,
