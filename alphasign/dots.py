@@ -132,13 +132,13 @@ class LargeDotsPicture(DotsPicture):
         :param height: Picture height in pixels (0-65535).
         :param width: Picture width in pixels (0-65535).
         :param data: Pixel data (list of strings).
-        :param color_status: Color status ("01" mono, "02" 3-color, "04" 8-color (not sure if this is valid), "08" RGB).
+        :param color_status: Color status ("01" mono, "02" 3-color, "04" 8-color, "08" RGB).
         """
 
         if len(label) != 9:
              # Enforcing 9 char based on E8 allocation spec
             raise ValueError("{self.__class__.__name__} name must be a 9 characters for E8 allocation.")
-        if color_status not in [constants.MONOLARGE, constants.THREELARGE, constants.EIGHTLARGE]:
+        if color_status not in [constants.MONOLARGE, constants.THREELARGE, constants.EIGHTLARGE, constants.RGB]:
             raise ValueError("LargeDotsPicture color status must be '01', '02', or '04'.")
 
         super().__init__(label=label, height=height, width=width, max_height=max_height, max_width = max_width, data=data, color_status=color_status)
@@ -175,33 +175,31 @@ class RgbDotsPicture(LargeDotsPicture):
     Inherits from DotsPicture.
     """
 
-    def __init__(self, label="1", height=0, width=0, data=None):
+    def __init__(self, label="AAAAAAAAA", height=0, width=0, data=None, color_status=constants.RGB):
         """
         :param label: File label (single character, default: "R").
         :param height: Picture height in pixels (0-65535).
         :param width: Picture width in pixels (0-65535).
         :param data: Pixel data (list of strings, each char is 6 hex digits RRGGBB).
         """
+        if color_status not in [constants.RGB]:
+            raise ValueError("RGBDotsPicture color status must be '08'.")
+        super().__init__(label=label, height=height, width=width, data=data, color_status=constants.RGB)
 
-        super().__init__(label=label, height=height, width=width, data=data, color_status="08")
-        # Allocation size uses 2 bytes for rows, 2 bytes for cols
-        self.size = (height << 16) | width
-
-    # call() method inherited from DotsPicture uses picture type '2', which is correct for RGB.
+    # call() method inherited from LargeDotsPicture.
 
     def __str__(self):
         """Generate the Write RGB DOTS PICTURE packet string."""
         # Format: [WRITE_RGB_DOTS][File Label][Height][Width][Row Data...]
         # Height/Width are 4 ASCII hex bytes each
         # Row data consists of 6 hex chars (RRGGBB) per pixel
-        height_hex, width_hex = self._format_dimensions(4)
+        # Todo: rgb compression
         data_str = self._format_data()
 
-        packet_data = "%s%s%s%s%s" % (
+        packet_data = "%s%s%s%s" % (
             constants.WRITE_RGB_DOTS,
             self.label,
-            height_hex,
-            width_hex,
+            self.size,
             data_str
         )
         return str(Packet(packet_data))
