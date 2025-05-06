@@ -155,8 +155,9 @@ class BaseInterface(object):
 
     :rtype: None
     """
-    seq_str = ".T"
-    seq_str += locked and "L" or "U"
+    seq_str = "." # Set Run Sequence
+    seq_str += "T" # type of Run Sequence order T = All TEXT Files will run according to their associated times
+    seq_str += "L" if locked else "U"
     for obj in files:
       # Only include TEXT files in the run sequence
       if type(obj) == Text:

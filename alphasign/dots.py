@@ -149,7 +149,7 @@ class LargeDotsPicture(DotsPicture):
     def call(self):
         """Generate the control code sequence to call this picture from a TEXT file. Pg. 82
 
-        Uses [US][Type][File name][display hold time]
+        Uses [US][Type][File name][display hold time - doesn't seem to be used]
         """
 
         return "%s%s%s%s" % (constants.US, "\x4C",self.label,"0000")
