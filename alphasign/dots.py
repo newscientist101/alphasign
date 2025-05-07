@@ -15,6 +15,34 @@ class DotsPicture(object):
         :param width: Picture width in pixels.
         :param data: Pixel data for the picture.
         :param color_status: Color status code ('1000' monochrome, '2000' 3-color, '4000' 8-color, '8000' RGB).
+        examples:
+                [
+                "0011100",
+                "0100010",
+                "1010101", # 7x7 monochrome smiley
+                "1000001",
+                "1011101",
+                "0100010",
+                "0011100"
+                ],
+                [
+                "00111000002220000033300",
+                "01000100020002000300030",
+                "10101010202020203030303", # 7x23 3-color smiley array
+                "10000010200000203000003",
+                "10111010202220203033303",
+                "01000100020002000300030",
+                "00111000002220000033300"
+                ],
+                [
+                '000000000000FF0000FF0000FF0000000000000000',
+                '000000FF0000000000000000000000FF0000000000',
+                'FF0000000000FF0000000000FF0000000000FF0000', # 7x7 red smiley
+                'FF0000000000000000000000000000000000FF0000',
+                'FF0000000000FF0000FF0000FF0000000000FF0000',
+                '000000FF0000000000000000000000FF0000000000',
+                '000000000000FF0000FF0000FF0000000000000000'
+                ]
         """
         if label is None:
             # Default label might differ based on type, handle in child classes
