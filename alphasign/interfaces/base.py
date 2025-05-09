@@ -79,10 +79,6 @@ class BaseInterface(object):
     largeobjects = list(filter(lambda x: x.__class__.__name__ in ['LargeDotsPicture', 'RgbDotsPicture'], files))
     smallobjects = list(filter(lambda x: x.__class__.__name__ in ['String', 'Text', 'SmallDotsPicture'], files))
     
-    # Not sure whether this is a bug or a limitation of the sign, but the Prism
-    # will only allocate 15 LargeDotsPictures total.
-    if len(largeobjects) > 15:
-      raise ValueError("Too many LargeDotsPicture objects. Only 15 can be allocated at once.")
     if smallobjects:
       seq = ""
       for obj in smallobjects:
