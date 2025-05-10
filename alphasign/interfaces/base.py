@@ -79,6 +79,25 @@ class BaseInterface(object):
     largeobjects = list(filter(lambda x: x.__class__.__name__ in ['LargeDotsPicture', 'RgbDotsPicture'], files))
     smallobjects = list(filter(lambda x: x.__class__.__name__ in ['String', 'Text', 'SmallDotsPicture'], files))
     
+    # FFFFFFFFFPRRRRCCCCccrrrr for LargeDotsPicture
+    if largeobjects:
+      seq = ""
+      for obj in largeobjects:
+        file_type = "D"
+        qqqq = obj.color_status # Color status ("01" mono, "02" 3-color, "04" 8-color (not sure if this is valid), "08" RGB)
+        lock = constants.UNLOCKED # DOTS files are typically unlocked
+        size_hex = obj.size # SIZE for Large DOTS is RRRRCCCC (Rows Rows Rows Rows Cols Cols Cols Cols) in hex
+        alloc_str = ("%s%s%s%s%s" %
+                      (obj.label,
+                        lock,
+                        size_hex,
+                        obj.color_status,
+                        "0000"))   # reserved for future use
+        seq += alloc_str
+      pkt = packet.Packet("%s%s%s" % (constants.WRITE_SPECIAL, "8", seq))
+      self.write(pkt)
+      time.sleep(0.5) # Allow time for allocation
+
     if smallobjects:
       seq = ""
       for obj in smallobjects:
@@ -106,24 +125,6 @@ class BaseInterface(object):
                 qqqq))
         seq += alloc_str
       pkt = packet.Packet("%s%s%s" % (constants.WRITE_SPECIAL, "$", seq))
-      self.write(pkt)
-    
-    # FFFFFFFFFPRRRRCCCCccrrrr for LargeDotsPicture
-    if largeobjects:
-      seq = ""
-      for obj in largeobjects:
-        file_type = "D"
-        qqqq = obj.color_status # Color status ("01" mono, "02" 3-color, "04" 8-color (not sure if this is valid), "08" RGB)
-        lock = constants.UNLOCKED # DOTS files are typically unlocked
-        size_hex = obj.size # SIZE for Large DOTS is RRRRCCCC (Rows Rows Rows Rows Cols Cols Cols Cols) in hex
-        alloc_str = ("%s%s%s%s%s" %
-                      (obj.label,
-                        lock,
-                        size_hex,
-                        obj.color_status,
-                        "0000"))   # reserved for future use
-        seq += alloc_str
-      pkt = packet.Packet("%s%s%s" % (constants.WRITE_SPECIAL, "8", seq))
       self.write(pkt)
     
     for obj in filter(lambda x: x.__class__.__name__ not in ["String", "Text", "SmallDotsPicture", "LargeDotsPicture", "RgbDotsPicture"], files):
