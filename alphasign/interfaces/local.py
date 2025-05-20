@@ -1,10 +1,10 @@
-from __future__ import print_function
 import serial
 import time
 import usb.core
 import usb.util
 
 from alphasign.interfaces import base
+from alphasign import constants
 
 
 class Serial(base.BaseInterface):
@@ -158,15 +158,39 @@ class USB(base.BaseInterface):
     if self.debug:
       print("Writing packet: %s" % repr(packet))
     
-    # Convert packet to bytes if it's not already
-    packet_bytes = str(packet).encode('utf-8') if isinstance(packet, str) else bytes(packet)
-    
-    # Write the packet
+    packet_bytes = bytes(packet)
+    command_code = repr(packet)[32]
+    max_packet_size = self._write_endpoint.wMaxPacketSize
+    # Write the packet(s)
     try:
-      written = self._device.write(self._write_endpoint.bEndpointAddress, packet_bytes)
+      # If the command code is WRITE_SMALL_DOTS, split the packet into two parts
+      # and send them separately. Refer to the protocol documentation (pg. 40) for details.
+      if command_code == constants.WRITE_SMALL_DOTS:
+        part1 = packet_bytes[0:16]
+        part2 = packet_bytes[16:]
+        written1 = self._device.write(self._write_endpoint.bEndpointAddress, part1)
+        time.sleep(0.1)
+        written2 = self._device.write(self._write_endpoint.bEndpointAddress, part2)
+        written = (written1+written2)
+        if self.debug:
+          print("Small dots detected: %s" % command_code)
+      # for large (>500 bytes) commands, it appears we need to send the data in chunks
+      # of max_packet_size bytes. Otherwise the operation times out. This is the case while testing with WSL2 and USIPD
+      elif command_code == constants.WRITE_LARGE_DOTS or command_code == constants.WRITE_RGB_DOTS:       
+        remaining = packet_bytes
+        written = 0
+        while remaining:
+          partial = self._device.write(self._write_endpoint.bEndpointAddress, remaining[:max_packet_size])
+          time.sleep(0.1)
+          remaining = remaining[partial:]
+          written += partial
+        if self.debug:
+          print(f"Large dots detected: {command_code}")
+          print(f"MaxPacketSize: {self._write_endpoint.wMaxPacketSize}")
+      else:
+          written = self._device.write(self._write_endpoint.bEndpointAddress, packet_bytes)
       if self.debug:
         print("%d bytes written" % written)
-      
       # Send empty packet to finalize the transfer
       self._device.write(self._write_endpoint.bEndpointAddress, b'')
       return True

@@ -39,7 +39,6 @@ Here is a simple example for controlling a Betabrite Prism via USB::
   if __name__ == "__main__":
     main()
 """
-from __future__ import absolute_import
 
 import datetime
 import os
@@ -56,7 +55,7 @@ from .date import Date
 from .string import String
 from .packet import Packet
 from .text import Text
-from .rgb import RGB
+from .dots import SmallDotsPicture, LargeDotsPicture, RgbDotsPicture
 
 from . import charsets
 from . import colors

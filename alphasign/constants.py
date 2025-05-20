@@ -34,9 +34,20 @@ VT                    = "\x0B"  # Vertical Tab
 #FF                    = "\x0C"  # Form Feed
 NP                    = "\x0C"  # New Page
 CR                    = "\x0D"  # Carriage Return
+DC4                  = "\x14"  # Call SMALL DOTS PICTURE file (2-byte format) — must be followed by a DOTS PICTURE File Label
 CAN                   = "\x18"  # Cancel
 SUB                   = "\x1A"  # Substitute (select charset)
 ESC                   = "\x1B"  # Escape character
+US                   = "\x1F"  # Call large dots picture or animation file (15-byte format)
 
 NEWLINE               = NL
 NEWPAGE               = NP
+
+# Color status for small and large dots
+MONOSMALL = "1000"
+THREESMALL = "2000"
+EIGHTSMALL = "4000"
+MONOLARGE = "01"
+THREELARGE = "02"
+EIGHTLARGE = "04" #Not in documentation but works on some signs (Tested with Betabrite Prism)
+RGB = "08"
